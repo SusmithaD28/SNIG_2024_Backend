@@ -1,6 +1,5 @@
 const express = require('express');
 const mongoose = require('mongoose');
-const product = require('./models/productModel');
 const { MongoClient, ServerApiVersion } = require('mongodb');
 const axios = require('axios');
 const app = express();
@@ -19,6 +18,7 @@ async function getEmbedding(query) {
     const openai_key = openAIKey; // Replace with your OpenAI key.
     
     // Call OpenAI API to get the embeddings.
+
     let response = await axios.post(url, {
         input: query,
         model: "text-embedding-3-small"
@@ -56,8 +56,8 @@ const client = new MongoClient(uri, {
     }
   }
   run().catch(console.dir).then(() => {
-    app.listen(5000, () => {
-        console.log('Server is running at port 5000');
+    app.listen(3000, () => {
+        console.log('Server is running at port 3000');
     });
   })
 
@@ -79,6 +79,7 @@ app.get('/movies', async(req, res) => {
 app.get('/search_semantic', async(req, res) => {
     try {
         if (req.query.word) {
+            embedding = await getEmbedding(req.query.word);
             results = await client
               .db("sample_mflix")
               .collection("embedded_movies")
