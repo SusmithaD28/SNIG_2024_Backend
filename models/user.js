@@ -8,6 +8,10 @@ const userSchema = new mongoose.Schema({
 	lastName: { type: String, required: true },
 	email: { type: String, required: true },
 	password: { type: String, required: true },
+	subscription: {
+        status: { type: String, enum: ['active', 'inactive'], default: 'inactive' },
+        expiresAt: { type: Date } // Optionally, you can include an expiration date
+    }
 });
 
 userSchema.methods.generateAuthToken = function () {
