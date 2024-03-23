@@ -1,11 +1,12 @@
 const { Router } = require("express");
 const userMiddleware = require("../middleware/user");
-const { Admin, User, Movies } = require("../db");
+const { User, Movies, embeddedMovies } = require("../db");
 const {JWT_SECRET,saltRounds} = require("../config");
 const router = Router();
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const { ConnectionStates } = require("mongoose");
+const adminMiddleware = require("../middleware/admin");
 
 // User Routes
 
@@ -188,5 +189,72 @@ router.get('/me', userMiddleware, async(req, res) => {
         })
     }
 });
+
+router.post('/movies',userMiddleware, adminMiddleware, async (req, res) => {
+    const title = req.body.title;
+    const plot = req.body.plot;
+    const genres = req.body.genres;
+    const runtime = req.body.runtime;
+    const newmovie = await Movies.create({
+        title,
+        plot,
+        genres,
+        runtime
+    })
+
+    res.json({
+        message: 'movie added successfully', movieId: newmovie._id
+    })
+});
+
+// get movies
+router.get('/movies', userMiddleware, adminMiddleware, async (req, res) => {
+    const response = await Movies.find({});
+    res.json({
+        movies: response
+    })
+
+});
+
+// get a movie
+router.get('/movies/:movieId', userMiddleware, adminMiddleware, async (req, res) => {
+    const response = await Movies.find({"_id":movieId});
+    res.json({
+        movies: response
+    })
+});
+
+// delete movie
+router.post('/movies/delete/:movieId', userMiddleware, adminMiddleware, async (req, res) => {
+    Movies.deleteOne({"_id":movieId})
+    res.json({
+        message: 'movie deleted successfully'
+    })
+});
+
+// get all users
+router.get('/users', userMiddleware, adminMiddleware, async (req, res) => {
+    const response = await User.find({});
+    res.json({
+        users: response
+    })
+});
+
+// get a user
+router.get('/users/:userId', userMiddleware, adminMiddleware, async (req, res) => {
+    const response = await User.find({"_id":userId});
+    res.json({
+        user: response
+    })
+});
+
+// delete user
+router.post('/users/delete/:userId', userMiddleware, adminMiddleware, async (req, res) => {
+    const response = await User.deleteOne({"_id":userId});
+    res.json({
+        msg: "user deleted successfully"
+    })
+});
+
 
 module.exports = router

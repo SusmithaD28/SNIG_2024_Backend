@@ -76,7 +76,7 @@ router.get("/", async (req, res) => {
             $limit: limit,
         }
       ]);
-      const results = results_auto.concat(results_semantic);
+      const results = results_auto.concat(results_semantic).slice(0,limit);
         res.send(results);
 
 });
