@@ -58,6 +58,16 @@ router.post('/signin', async(req, res) => {
     {
         return res.status(400).json({msg:'Incorrect password'});
     }
+    const subscribedAt = user.subscribedAt;
+    const date = Date.now();
+    if(user.role!="admin" && subscribedAt!=null)
+    {
+        if(date-subscribedAt>2592000000)
+        {
+            user.subscription = null;
+            await user.save();
+        }
+    }
     const token = jwt.sign({
         email,
         iat: Math.floor(Date.now() / 1000) 
@@ -68,7 +78,7 @@ router.post('/signin', async(req, res) => {
 // signout
 
 // delete account
-router.post('/delete', userMiddleware, async (req, res) => {
+router.delete('/delete', userMiddleware, async (req, res) => {
     const email = req.email;
     const response = await User.deleteOne({email});
     res.json({
@@ -77,7 +87,7 @@ router.post('/delete', userMiddleware, async (req, res) => {
 });
 
 // get all movies
-router.get('/movies', async(req, res) => {
+router.get('/movies', userMiddleware, async(req, res) => {
     const response = await Movies.find({});
     res.json({
         movies: response
@@ -103,11 +113,17 @@ router.get('/movies/:movieId', userMiddleware, async (req, res) => {
 // add a sub
 router.post('/subscription', userMiddleware, async (req, res) => {
     const sub = req.body.subscription;
+    const role = req.role;
+    const date = Date.now();
+    if(role=="admin"){
+        return res.json({ message: "You are admin" });
+    }
     const email = req.email;
     try {
         const user = await User.findOne({ email });
         if (user) {
             user.subscription = sub;
+            user.subscribedAt = date;
             await user.save(); 
             res.json({ message: "Subscription updated successfully" });
         } else {
@@ -133,11 +149,11 @@ router.get('/subscription', userMiddleware, (req, res) => {
     {
         res.json({
             subscription
-        })
+        });
     }
 });
 
-// watch a movie
+// watch a movie fetch from videos database
 router.get('/movies/:movieId/watch', userMiddleware, (req, res) => {
     const movieId = req.params.movieId;
     const subscription = req.subscription;

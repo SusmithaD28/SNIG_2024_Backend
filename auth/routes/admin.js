@@ -1,6 +1,6 @@
 const { Router } = require("express");
 const adminMiddleware = require("../middleware/admin");
-const { Admin, User, Movies } = require("../db");
+const { Admin, User, Movies, embeddedMovies } = require("../db");
 const {JWT_SECRET} = require("../config");
 const router = Router();
 const jwt = require("jsonwebtoken");
@@ -11,11 +11,13 @@ const jwt = require("jsonwebtoken");
 router.post('/signup', async (req, res) => {
     const name = req.body.name;
     const password = req.body.password;
+    const email = req.body.email;
 
     // check if a user with this username already exists
     await Admin.create({
         name: name,
-        password: password
+        password: password,
+        email: email
     })
     // console.log(JWT_SECRET);
     res.json({
@@ -27,10 +29,11 @@ router.post('/signup', async (req, res) => {
 router.post('/signin', async (req, res) => {
     const name = req.body.name;
     const password = req.body.password;
-
+    const email = req.body.email;
     const admin = await Admin.find({
         name,
-        password
+        password,
+        email
     })
     if (admin) {
         const token = jwt.sign({
@@ -48,16 +51,16 @@ router.post('/signin', async (req, res) => {
 });
 
 // add movie
-router.post('/movies', adminMiddleware, async (req, res) => {
+router.post('/movies', async (req, res) => {
     const title = req.body.title;
     const plot = req.body.plot;
     const genres = req.body.genres;
     const runtime = req.body.runtime;
     const newmovie = await Movies.create({
         title,
-        description,
-        imageLink,
-        price
+        plot,
+        genres,
+        runtime
     })
 
     res.json({

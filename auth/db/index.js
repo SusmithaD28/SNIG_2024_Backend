@@ -1,11 +1,5 @@
 const mongoose = require('mongoose');
-mongoose.connect('mongodb+srv://movies:mongodb@cluster0.ona9uuw.mongodb.net/sample_mflix');
-const AdminSchema = new mongoose.Schema({
-    // Schema definition here
-    name: String,
-    password: String,
-    email: String
-});
+mongoose.connect('mongodb+srv://movies:mongodb@cluster0.ona9uuw.mongodb.net/sample_mflix')
 
 const UserSchema = new mongoose.Schema({
     // Schema definition here
@@ -15,6 +9,15 @@ const UserSchema = new mongoose.Schema({
     subscription: {
         type: String,
         default: null
+    },
+    role: {
+        type: String,
+        default: "user"
+    },
+    subscribedAt: {
+        type: Date,
+        default: null
+    
     }
 });
 
@@ -40,11 +43,12 @@ const MovieSchema = new mongoose.Schema({
     // tomatoes: Object,
     // num_mflix_comments: Number
 });
-const Admin = mongoose.model('Admin', AdminSchema);
 const User = mongoose.model('User', UserSchema);
 const Movies = mongoose.model('Movies', MovieSchema);
+const embeddedMovies = mongoose.model('embedded_movies', MovieSchema);
+
 module.exports = {
-    Admin,
     User,
-    Movies
+    Movies,
+    embeddedMovies
 }
