@@ -12,7 +12,8 @@ const adminMiddleware = require("../middleware/admin");
 
 // singup
 router.post('/signup', async (req, res) => {
-    const name = req.body.name;
+    const firstname = req.body.firstname;
+    const lastname = req.body.lastname;
     const password = req.body.password;
     const email = req.body.email;
     const salt = await bcrypt.genSalt(saltRounds);
@@ -30,7 +31,8 @@ router.post('/signup', async (req, res) => {
     // Create the user
     try {
         await User.create({
-            name,
+            firstname,
+            lastname,
             password:hashedPassword,
             email
         });
@@ -40,9 +42,6 @@ router.post('/signup', async (req, res) => {
         res.status(500).json({ message: 'Internal server error' });
     }
 });
-
-
-
 // signin
 router.post('/signin', async(req, res) => {
     const email = req.body.email;
@@ -101,7 +100,10 @@ router.get('/movies/:movieId', userMiddleware, async (req, res) => {
     try {
         const response = await Movies.findOne({ "_id": movieId });
         if (!response) {
+            const response_ = await embeddedMovies.findOne({ "_id": movieId });
+            if(!response_)
             return res.status(404).json({ message: 'Movie not found' });
+            return res.status(200).json({ movies: response_ });
         }
         res.json({ movies: response });
     } catch (error) {
@@ -140,7 +142,7 @@ router.post('/subscription', userMiddleware, async (req, res) => {
 // get sub
 router.get('/subscription', userMiddleware, (req, res) => {
     const subscription = req.subscription;
-    if(subscription!=null)
+    if(subscription==null)
     {
         res.json({
             msg: "Not subscribed"
@@ -218,6 +220,7 @@ router.get('/movies', userMiddleware, adminMiddleware, async (req, res) => {
 
 // get a movie
 router.get('/movies/:movieId', userMiddleware, adminMiddleware, async (req, res) => {
+    const movieId = req.params.movieId;
     const response = await Movies.find({"_id":movieId});
     res.json({
         movies: response
@@ -225,8 +228,9 @@ router.get('/movies/:movieId', userMiddleware, adminMiddleware, async (req, res)
 });
 
 // delete movie
-router.post('/movies/delete/:movieId', userMiddleware, adminMiddleware, async (req, res) => {
-    Movies.deleteOne({"_id":movieId})
+router.delete('/movies/delete/:movieId', userMiddleware, adminMiddleware, async (req, res) => {
+    const movieId = req.params.movieId;
+    await Movies.deleteOne({"_id":movieId})
     res.json({
         message: 'movie deleted successfully'
     })
@@ -242,6 +246,7 @@ router.get('/users', userMiddleware, adminMiddleware, async (req, res) => {
 
 // get a user
 router.get('/users/:userId', userMiddleware, adminMiddleware, async (req, res) => {
+    const userId = req.params.userId;
     const response = await User.find({"_id":userId});
     res.json({
         user: response
@@ -249,7 +254,9 @@ router.get('/users/:userId', userMiddleware, adminMiddleware, async (req, res) =
 });
 
 // delete user
-router.post('/users/delete/:userId', userMiddleware, adminMiddleware, async (req, res) => {
+router.delete('/users/delete/:userId', userMiddleware, adminMiddleware, async (req, res) => {
+    const userId = req.params.userId;
+
     const response = await User.deleteOne({"_id":userId});
     res.json({
         msg: "user deleted successfully"

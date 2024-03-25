@@ -44,7 +44,6 @@ router.get("/", async (req, res) => {
         {
           "$project": {
             "title": 1,
-            "plot": 1,
             "score": {
               "$meta": "searchScore"
             }

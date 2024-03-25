@@ -3,7 +3,8 @@ mongoose.connect('mongodb+srv://movies:mongodb@cluster0.ona9uuw.mongodb.net/samp
 
 const UserSchema = new mongoose.Schema({
     // Schema definition here
-    name: String,
+    firstname: {type:String, required:true},
+    lastname: {type:String, required:true},
     password: String,
     email: String,
     subscription: {
