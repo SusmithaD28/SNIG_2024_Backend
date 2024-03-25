@@ -1,1 +1,0 @@
-# SNIG_2024_Backend
