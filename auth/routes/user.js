@@ -102,7 +102,7 @@ router.get('/movies/:movieId', userMiddleware, async (req, res) => {
         if (!response) {
             const response_ = await embeddedMovies.findOne({ "_id": movieId });
             if(!response_)
-            return res.status(404).json({ message: 'Movie not found' });
+                return res.status(404).json({ message: 'Movie not found' });
             return res.status(200).json({ movies: response_ });
         }
         res.json({ movies: response });
