@@ -1,4 +1,4 @@
-const { Router } = require("express");
+const { Router, request } = require("express");
 const userMiddleware = require("../middleware/user");
 const { User, Movies, embeddedMovies } = require("../db");
 const {JWT_SECRET,saltRounds} = require("../config");
@@ -7,6 +7,10 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const { ConnectionStates } = require("mongoose");
 const adminMiddleware = require("../middleware/admin");
+const axios = require('axios');
+require('dotenv').config({ path: "./.env" });
+const mongoose = require('mongoose');
+uri = process.env.DBURI;
 
 // User Routes
 
@@ -263,5 +267,7 @@ router.delete('/users/delete/:userId', userMiddleware, adminMiddleware, async (r
     })
 });
 
-
+router.get('/videos', userMiddleware, adminMiddleware, async (req, res) => {
+    
+});
 module.exports = router
