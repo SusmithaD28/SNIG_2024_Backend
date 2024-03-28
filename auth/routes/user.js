@@ -15,7 +15,7 @@ require('dotenv').config({ path: "./.env" });
 const mongoose = require('mongoose');
 uri = process.env.DBURI;
 const methodOverride = require('method-override');
-
+const crypto = require('crypto');
 const conn = mongoose.createConnection(uri);
 
 // User Routes
@@ -205,8 +205,8 @@ router.get('/videos/watch', userMiddleware, async (req, res) => {
         return res.json(files);
       });
 });
-router.post('/upload', userMiddleware, adminMiddleware, upload.single('file'), (req, res) => {
-    res.json({ file: req.files.newfile });
+router.post('/upload', upload.single('file'), (req, res) => {
+    console.log(req.file);
     //res.redirect('/');
   });
 // watch a movie fetch from videos database
