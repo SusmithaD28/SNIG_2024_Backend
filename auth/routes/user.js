@@ -7,46 +7,17 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const { ConnectionStates } = require("mongoose");
 const adminMiddleware = require("../middleware/admin");
-const axios = require('axios');
-const multer = require('multer');
-const {GridFsStorage} = require('multer-gridfs-storage');
-const Grid = require('gridfs-stream');
 require('dotenv').config({ path: "./.env" });
 const mongoose = require('mongoose');
 uri = process.env.DBURI;
-const methodOverride = require('method-override');
-const crypto = require('crypto');
-const conn = mongoose.createConnection(uri);
 
-// User Routes
-let gfs;
-
-conn.once('open', () => {
-  // Init stream
-  gfs = Grid(conn.db, mongoose.mongo);
-  gfs.collection('videos');
-});
-
-// Create storage engine
-const storage = new GridFsStorage({
-    url: uri,
-    file: (req, file) => {
-      return new Promise((resolve, reject) => {
-        crypto.randomBytes(16, (err, buf) => {
-          if (err) {
-            return reject(err);
-          }
-          const filename = buf.toString('hex') + path.extname(file.originalname);
-          const fileInfo = {
-            filename: filename,
-            bucketName: 'videos'
-          };
-          resolve(fileInfo);
-        });
-      });
-    }
-  });
-  const upload = multer({ storage });
+// var cloudinary = require('cloudinary').v2;
+// const api_secret = process.env.CLOUDINARY_API;          
+// cloudinary.config({ 
+//   cloud_name: 'dmosrjvky', 
+//   api_key: '395151562262217', 
+//   api_secret: api_secret 
+// });
 // singup
 router.post('/signup', async (req, res) => {
     const firstname = req.body.firstname;
@@ -192,23 +163,25 @@ router.get('/subscription', userMiddleware, (req, res) => {
         });
     }
 });
-router.get('/videos/watch', userMiddleware, async (req, res) => {
-    gfs.files.find().toArray((err, files) => {
-        // Check if files
-        if (!files || files.length === 0) {
-          return res.status(404).json({
-            err: 'No files exist'
-          });
-        }
+// router.get('/videos/watch', userMiddleware, async (req, res) => {
+//     gfs.files.find().toArray((err, files) => {
+//         // Check if files
+//         if (!files || files.length === 0) {
+//           return res.status(404).json({
+//             err: 'No files exist'
+//           });
+//         }
     
-        // Files exist
-        return res.json(files);
-      });
-});
-router.post('/upload', upload.single('file'), (req, res) => {
-    console.log(req.file);
-    //res.redirect('/');
-  });
+//         // Files exist
+//         return res.json(files);
+//       });
+// });
+// router.post('/upload',(req, res) => {
+//     cloudinary.uploader.upload("../videos/gif.mp4",
+//   { public_id: "gif" }, 
+//   function(error, result) {console.log("hello"); });
+//   res.json({msg: "uploaded"});
+//   });
 // watch a movie fetch from videos database
 router.get('/movies/:movieId/watch', userMiddleware, (req, res) => {
     const movieId = req.params.movieId;
