@@ -80,7 +80,7 @@ router.post('/signin', async(req, res) => {
         email,
         iat: Math.floor(Date.now() / 1000) 
     }, JWT_SECRET,{expiresIn:'1d'});
-    res.json({token})
+    res.json({token,firstname:user.firstname,role:user.role,subscription:user.subscription,subscribedAt:user.subscribedAt})
 });
 
 // signout
@@ -148,18 +148,20 @@ router.post('/subscription', userMiddleware, async (req, res) => {
 
 
 // get sub
-router.get('/subscription', userMiddleware, (req, res) => {
+router.get('/subscription', userMiddleware, async(req, res) => {
     const subscription = req.subscription;
+    const email = req.email;
     if(subscription==null)
     {
         res.json({
-            msg: "Not subscribed"
+            message: "Not subscribed"
         })
     }
     else
     {
+        const user = await User.findOne({ email });
         res.json({
-            subscription
+            subscription:user.subscription,subscribedAt:user.subscribedAt
         });
     }
 });

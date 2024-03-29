@@ -11,7 +11,7 @@ app.use(bodyParser.json());
 app.use("/user", userRouter)
 app.use("/search", searchRouter)
 app.use("/api", paymentRouter)
-const PORT = 3000;
+const PORT = 4000;
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });
