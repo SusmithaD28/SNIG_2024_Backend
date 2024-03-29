@@ -44,12 +44,18 @@ const MovieSchema = new mongoose.Schema({
     // tomatoes: Object,
     // num_mflix_comments: Number
 });
+const VideoSchema = new mongoose.Schema({
+    title: String,
+    url: String,
+    resolution: String,
+});
 const User = mongoose.model('User', UserSchema);
 const Movies = mongoose.model('Movies', MovieSchema);
 const embeddedMovies = mongoose.model('embedded_movies', MovieSchema);
-
+const videos = mongoose.model('videos', VideoSchema);
 module.exports = {
     User,
     Movies,
-    embeddedMovies
+    embeddedMovies, 
+    videos
 }

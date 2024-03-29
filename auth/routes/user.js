@@ -1,6 +1,6 @@
 const { Router, request } = require("express");
 const userMiddleware = require("../middleware/user");
-const { User, Movies, embeddedMovies } = require("../db");
+const { User, Movies, embeddedMovies, videos } = require("../db");
 const {JWT_SECRET,saltRounds} = require("../config");
 const router = Router();
 const jwt = require("jsonwebtoken");
@@ -8,16 +8,11 @@ const bcrypt = require("bcrypt");
 const { ConnectionStates } = require("mongoose");
 const adminMiddleware = require("../middleware/admin");
 require('dotenv').config({ path: "./.env" });
-const mongoose = require('mongoose');
-uri = process.env.DBURI;
-
-// var cloudinary = require('cloudinary').v2;
-// const api_secret = process.env.CLOUDINARY_API;          
-// cloudinary.config({ 
-//   cloud_name: 'dmosrjvky', 
-//   api_key: '395151562262217', 
-//   api_secret: api_secret 
-// });
+const { config, uploader } = require('../config/cloudinaryconfig');
+const multerUploads = require('../middleware/multeruploads');
+const DatauriParser = require('datauri/parser');
+const parser = new DatauriParser();
+const path = require('path');
 // singup
 router.post('/signup', async (req, res) => {
     const firstname = req.body.firstname;
@@ -165,25 +160,40 @@ router.get('/subscription', userMiddleware, async(req, res) => {
         });
     }
 });
-// router.get('/videos/watch', userMiddleware, async (req, res) => {
-//     gfs.files.find().toArray((err, files) => {
-//         // Check if files
-//         if (!files || files.length === 0) {
-//           return res.status(404).json({
-//             err: 'No files exist'
-//           });
-//         }
-    
-//         // Files exist
-//         return res.json(files);
-//       });
-// });
-// router.post('/upload',(req, res) => {
-//     cloudinary.uploader.upload("../videos/gif.mp4",
-//   { public_id: "gif" }, 
-//   function(error, result) {console.log("hello"); });
-//   res.json({msg: "uploaded"});
-//   });
+
+router.post('/upload',multerUploads, async(req, res) => {
+ parser.format(path.extname(req.file.originalname).toString(), req.file.buffer);
+  url = ''
+    await uploader.upload(parser.content, {resource_type: "video"})
+    .then((result) => {
+        console.log(result);
+        url = result.url;
+    })
+    .catch((err) => {
+        console.log(err)
+    return res.status(500).json({
+        msg: "Internal server error"
+    });
+});
+    if (url != ''){
+        const newvideo = await videos.create({
+            title: req.file.originalname,
+            url: url,
+            resolution: "144p"
+        
+        });
+        res.json({
+            "msg": "uploaded",
+            "response":newvideo
+        });
+    console.log(req.file)
+    }
+    else{
+        res.status(400).json({
+            "msg": "not uploaded"
+        });
+    }
+    });
 // watch a movie fetch from videos database
 router.get('/movies/:movieId/watch', userMiddleware, (req, res) => {
     const movieId = req.params.movieId;
