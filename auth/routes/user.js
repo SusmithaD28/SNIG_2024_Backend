@@ -1,7 +1,7 @@
 const { Router, request } = require("express");
 const userMiddleware = require("../middleware/user");
 const { User, Movies, embeddedMovies, videos } = require("../db");
-const {JWT_SECRET,saltRounds} = require("../config");
+const { JWT_SECRET, saltRounds } = require("../config");
 const router = Router();
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
@@ -13,6 +13,8 @@ const multerUploads = require('../middleware/multeruploads');
 const DatauriParser = require('datauri/parser');
 const parser = new DatauriParser();
 const path = require('path');
+const ffmpeg = require('fluent-ffmpeg');
+const fs = require('fs');
 // singup
 router.post('/signup', async (req, res) => {
     const firstname = req.body.firstname;
@@ -21,9 +23,8 @@ router.post('/signup', async (req, res) => {
     const email = req.body.email;
     const salt = await bcrypt.genSalt(saltRounds);
     const hashedPassword = await bcrypt.hash(password, salt);
-    const auth = await bcrypt.compare(password,hashedPassword);
-    if(!auth)
-    {
+    const auth = await bcrypt.compare(password, hashedPassword);
+    if (!auth) {
         console.log("noMatch");
     }
     // Check if the email already exists in the database
@@ -36,7 +37,7 @@ router.post('/signup', async (req, res) => {
         await User.create({
             firstname,
             lastname,
-            password:hashedPassword,
+            password: hashedPassword,
             email
         });
         res.json({ message: 'User created successfully' });
@@ -46,36 +47,32 @@ router.post('/signup', async (req, res) => {
     }
 });
 // signin
-router.post('/signin', async(req, res) => {
+router.post('/signin', async (req, res) => {
     const email = req.body.email;
     const password = req.body.password;
     const user = await User.findOne({
         email
     })
-    if(!user)
-    {
-        return res.status(400).json({msg: "User doesn't exist"});
+    if (!user) {
+        return res.status(400).json({ msg: "User doesn't exist" });
     }
-    const auth = await bcrypt.compare(password,user.password);
-    if(!auth)
-    {
-        return res.status(400).json({msg:'Incorrect password'});
+    const auth = await bcrypt.compare(password, user.password);
+    if (!auth) {
+        return res.status(400).json({ msg: 'Incorrect password' });
     }
     const subscribedAt = user.subscribedAt;
     const date = Date.now();
-    if(user.role!="admin" && subscribedAt!=null)
-    {
-        if(date-subscribedAt>2592000000)
-        {
+    if (user.role != "admin" && subscribedAt != null) {
+        if (date - subscribedAt > 2592000000) {
             user.subscription = null;
             await user.save();
         }
     }
     const token = jwt.sign({
         email,
-        iat: Math.floor(Date.now() / 1000) 
-    }, JWT_SECRET,{expiresIn:'1d'});
-    res.json({token,firstname:user.firstname,role:user.role,subscription:user.subscription,subscribedAt:user.subscribedAt})
+        iat: Math.floor(Date.now() / 1000)
+    }, JWT_SECRET, { expiresIn: '1d' });
+    res.json({ token, firstname: user.firstname, role: user.role, subscription: user.subscription, subscribedAt: user.subscribedAt })
 });
 
 // signout
@@ -83,14 +80,14 @@ router.post('/signin', async(req, res) => {
 // delete account
 router.delete('/delete', userMiddleware, async (req, res) => {
     const email = req.email;
-    const response = await User.deleteOne({email});
+    const response = await User.deleteOne({ email });
     res.json({
         msg: "Account deleted successfully"
     })
 });
 
 // get all movies
-router.get('/movies', userMiddleware, async(req, res) => {
+router.get('/movies', userMiddleware, async (req, res) => {
     const response = await Movies.find({});
     res.json({
         movies: response
@@ -104,7 +101,7 @@ router.get('/movies/:movieId', userMiddleware, async (req, res) => {
         const response = await Movies.findOne({ "_id": movieId });
         if (!response) {
             const response_ = await embeddedMovies.findOne({ "_id": movieId });
-            if(!response_)
+            if (!response_)
                 return res.status(404).json({ message: 'Movie not found' });
             return res.status(200).json({ movies: response_ });
         }
@@ -121,7 +118,7 @@ router.post('/subscription', userMiddleware, async (req, res) => {
     const sub = req.body.subscription;
     const role = req.role;
     const date = Date.now();
-    if(role=="admin"){
+    if (role == "admin") {
         return res.json({ message: "You are admin" });
     }
     const email = req.email;
@@ -130,7 +127,7 @@ router.post('/subscription', userMiddleware, async (req, res) => {
         if (user) {
             user.subscription = sub;
             user.subscribedAt = date;
-            await user.save(); 
+            await user.save();
             res.json({ message: "Subscription updated successfully" });
         } else {
             res.status(404).json({ message: "User not found" });
@@ -143,69 +140,119 @@ router.post('/subscription', userMiddleware, async (req, res) => {
 
 
 // get sub
-router.get('/subscription', userMiddleware, async(req, res) => {
+router.get('/subscription', userMiddleware, async (req, res) => {
     const subscription = req.subscription;
     const email = req.email;
-    if(subscription==null)
-    {
+    if (subscription == null) {
         res.json({
             message: "Not subscribed"
         })
     }
-    else
-    {
+    else {
         const user = await User.findOne({ email });
         res.json({
-            subscription:user.subscription,subscribedAt:user.subscribedAt
+            subscription: user.subscription, subscribedAt: user.subscribedAt
         });
     }
 });
+router.post('/changeRes', multerUploads, async (req, res) => {
+    const inputBuffer = req.file.buffer;
+    //save buffer to file
+    const inputFileExtension = path.extname(req.file.originalname);
 
-router.post('/upload',userMiddleware, adminMiddleware, multerUploads, async(req, res) => {
- parser.format(path.extname(req.file.originalname).toString(), req.file.buffer);
-  url = ''
-    await uploader.upload(parser.content, {resource_type: "video"})
-    .then((result) => {
-        console.log(result);
-        url = result.url;
-    })
-    .catch((err) => {
-        console.log(err)
-    return res.status(500).json({
-        msg: "Internal server error"
-    });
+    const inputFile = `input${inputFileExtension}`;
+    fs.writeFileSync(inputFile, inputBuffer);
+    outputBuffer = ''
+    await ffmpeg(inputFile).output('output.mp4').videoCodec('libx264').audioCodec('aac').outputOptions(['-vf scale=640:144']).on('end', async() => {
+        console.log('conversion ended');
+        outputBuffer =  fs.readFileSync('output.mp4');
+        console.log(outputBuffer);
+            parser.format(path.extname(req.file.originalname).toString(), outputBuffer);
+        url = ''
+        await uploader.upload(parser.content, { resource_type: "video" })
+            .then((result) => {
+                console.log(result);
+                url = result.url;
+                return res.status(200).json({ message: 'conversion ended' });
+            })
+            .catch((err) => {
+                console.log(err)
+                return res.status(500).json({
+                    msg: "Internal server error"
+                });
+            });
+
+        
+    }).on('error' ,() => {
+        console.log('error');
+        return res.status(500).json({
+            msg: "Internal server error"
+        });
+    }).run();
+//    if (outputBuffer == '')
+//         return res.status(500).json({"msg":"Internal server error"});
+//     parser.format(path.extname(req.file.originalname).toString(), outputBuffer);
+//         url = ''
+//         await uploader.upload(parser.content, { resource_type: "video" })
+//             .then((result) => {
+//                 console.log(result);
+//                 url = result.url;
+//             })
+//             .catch((err) => {
+//                 console.log(err)
+//                 return res.status(500).json({
+//                     msg: "Internal server error"
+//                 });
+//             });
+
+    
+   
+
 });
-    if (url != ''){
+router.post('/upload', userMiddleware, adminMiddleware, multerUploads, async (req, res) => {
+    parser.format(path.extname(req.file.originalname).toString(), req.file.buffer);
+    console.log(req.file);
+    url = ''
+    await uploader.upload(parser.content, { resource_type: "video" })
+        .then((result) => {
+            console.log(result);
+            url = result.url;
+        })
+        .catch((err) => {
+            console.log(err)
+            return res.status(500).json({
+                msg: "Internal server error"
+            });
+        });
+    if (url != '') {
         const newvideo = await videos.create({
             title: req.file.originalname,
             url: url,
             resolution: "144p"
-        
+
         });
         return res.json({
             "msg": "uploaded",
-            "response":newvideo
+            "response": newvideo
         });
     }
-    else{
+    else {
         return res.status(400).json({
             "msg": "not uploaded"
         });
     }
-    });
+});
 // watch a movie fetch from videos database
 router.get('/movies/:movieId/watch', userMiddleware, (req, res) => {
     const movieId = req.params.movieId;
     const subscription = req.subscription;
     // show if subscribed
-    if(subscription==null)
-    {
+    if (subscription == null) {
         res.json({
             msg: "Please subscribe to watch"
         })
     }
-    else
-    {
+    else {
         res.json({
             msg: "Here's the movie"
         })
@@ -213,7 +260,7 @@ router.get('/movies/:movieId/watch', userMiddleware, (req, res) => {
 });
 
 // get user (me)
-router.get('/me', userMiddleware, async(req, res) => {
+router.get('/me', userMiddleware, async (req, res) => {
     const email = req.email;
     const user = await User.findOne({
         email
@@ -229,7 +276,7 @@ router.get('/me', userMiddleware, async(req, res) => {
     }
 });
 
-router.post('/movies',userMiddleware, adminMiddleware, async (req, res) => {
+router.post('/movies', userMiddleware, adminMiddleware, async (req, res) => {
     const title = req.body.title;
     const plot = req.body.plot;
     const genres = req.body.genres;
@@ -258,7 +305,7 @@ router.get('/movies', userMiddleware, adminMiddleware, async (req, res) => {
 // get a movie
 router.get('/movies/:movieId', userMiddleware, adminMiddleware, async (req, res) => {
     const movieId = req.params.movieId;
-    const response = await Movies.find({"_id":movieId});
+    const response = await Movies.find({ "_id": movieId });
     res.json({
         movies: response
     })
@@ -267,7 +314,7 @@ router.get('/movies/:movieId', userMiddleware, adminMiddleware, async (req, res)
 // delete movie
 router.delete('/movies/delete/:movieId', userMiddleware, adminMiddleware, async (req, res) => {
     const movieId = req.params.movieId;
-    await Movies.deleteOne({"_id":movieId})
+    await Movies.deleteOne({ "_id": movieId })
     res.json({
         message: 'movie deleted successfully'
     })
@@ -284,7 +331,7 @@ router.get('/users', userMiddleware, adminMiddleware, async (req, res) => {
 // get a user
 router.get('/users/:userId', userMiddleware, adminMiddleware, async (req, res) => {
     const userId = req.params.userId;
-    const response = await User.find({"_id":userId});
+    const response = await User.find({ "_id": userId });
     res.json({
         user: response
     })
@@ -294,13 +341,13 @@ router.get('/users/:userId', userMiddleware, adminMiddleware, async (req, res) =
 router.delete('/users/delete/:userId', userMiddleware, adminMiddleware, async (req, res) => {
     const userId = req.params.userId;
 
-    const response = await User.deleteOne({"_id":userId});
+    const response = await User.deleteOne({ "_id": userId });
     res.json({
         msg: "user deleted successfully"
     })
 });
 
 router.get('/videos', userMiddleware, adminMiddleware, async (req, res) => {
-    
+
 });
 module.exports = router
