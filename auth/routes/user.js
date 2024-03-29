@@ -161,7 +161,7 @@ router.get('/subscription', userMiddleware, async(req, res) => {
     }
 });
 
-router.post('/upload',multerUploads, async(req, res) => {
+router.post('/upload',userMiddleware, adminMiddleware, multerUploads, async(req, res) => {
  parser.format(path.extname(req.file.originalname).toString(), req.file.buffer);
   url = ''
     await uploader.upload(parser.content, {resource_type: "video"})
@@ -182,14 +182,13 @@ router.post('/upload',multerUploads, async(req, res) => {
             resolution: "144p"
         
         });
-        res.json({
+        return res.json({
             "msg": "uploaded",
             "response":newvideo
         });
-    console.log(req.file)
     }
     else{
-        res.status(400).json({
+        return res.status(400).json({
             "msg": "not uploaded"
         });
     }
