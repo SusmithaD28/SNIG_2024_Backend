@@ -202,7 +202,7 @@ router.post('/changeRes', multerUploads, async (req, res) => {
 
 
 });
-router.post('/upload', multerUploads, async (req, res) => {
+router.post('/upload', userMiddleware, adminMiddleware, multerUploads, async (req, res) => {
     parser.format(path.extname(req.file.originalname).toString(), req.file.buffer);
     console.log(req.file);
     url = ''
