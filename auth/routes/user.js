@@ -340,7 +340,31 @@ router.delete('/users/delete/:userId', userMiddleware, adminMiddleware, async (r
     })
 });
 
-router.get('/videos', userMiddleware, adminMiddleware, async (req, res) => {
-
+router.get('/video', userMiddleware,  async (req, res) => {
+    const subscription = req.subscription;
+    if (subscription == null) {
+        video = await videos.findOne({title: "trailer"});
+        res.json({
+            url: video.url
+        })
+    }
+    else if(subscription == "Tier1"){
+        video = await videos.findOne({resolution: "360p"});
+        res.json({
+            url: video.url
+        })
+    }
+    else if(subscription == "Tier2"){
+        video = await videos.findOne({resolution: "480p"});
+        res.json({
+            url: video.url
+        })
+    }
+    else{
+        video = await videos.findOne({resolution: "720p"});
+        res.json({
+            url: video.url
+        })
+    }
 });
 module.exports = router
