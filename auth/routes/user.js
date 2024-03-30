@@ -1,4 +1,4 @@
-const { Router, request } = require("express");
+const { Router, request, response } = require("express");
 const userMiddleware = require("../middleware/user");
 const { User, Movies, embeddedMovies, videos } = require("../db");
 const { JWT_SECRET, saltRounds } = require("../config");
@@ -16,6 +16,40 @@ const path = require('path');
 const ffmpeg = require('fluent-ffmpeg');
 const fs = require('fs');
 // singup
+
+async function changeResolution(inputFile, extension){
+    await ffmpeg(inputFile).output('output.mp4').videoCodec('libx264').audioCodec('aac').outputOptions(['-vf scale=-2:144'])
+    .on('end', async() => {
+        outputBuffer =  fs.readFileSync('output.mp4');
+        console.log(outputBuffer);
+            parser.format(extension, outputBuffer);
+        uri = ''
+        await uploader.upload(parser.content, { resource_type: "video" })
+            .then((result) => {
+                console.log(result);
+                uri = result.url;
+                return {
+                    "msg": "uploaded",
+                    "uri": uri
+                }
+            })
+            .catch((err) => {
+                console.log(err)
+                return {
+                    "msg": "not uploaded"
+                }
+            });
+    })
+    .on('error' ,() => {
+        console.log('error');
+        return {
+            "msg": "not uploaded"
+        }
+    })
+    
+    
+    }
+    
 router.post('/signup', async (req, res) => {
     const firstname = req.body.firstname;
     const lastname = req.body.lastname;
@@ -162,54 +196,13 @@ router.post('/changeRes', multerUploads, async (req, res) => {
 
     const inputFile = `input${inputFileExtension}`;
     fs.writeFileSync(inputFile, inputBuffer);
-    outputBuffer = ''
-    await ffmpeg(inputFile).output('output.mp4').videoCodec('libx264').audioCodec('aac').outputOptions(['-vf scale=640:144']).on('end', async() => {
-        console.log('conversion ended');
-        outputBuffer =  fs.readFileSync('output.mp4');
-        console.log(outputBuffer);
-            parser.format(path.extname(req.file.originalname).toString(), outputBuffer);
-        url = ''
-        await uploader.upload(parser.content, { resource_type: "video" })
-            .then((result) => {
-                console.log(result);
-                url = result.url;
-                return res.status(200).json({ message: 'conversion ended' });
-            })
-            .catch((err) => {
-                console.log(err)
-                return res.status(500).json({
-                    msg: "Internal server error"
-                });
-            });
+    const extension = path.extname(req.file.originalname).toString();
+    const title = req.file.originalname;
+    await changeResolution(inputFile, extension).then(() => {return res.json({msg: "uploaded"})}).catch(() => {return res.json({msg: "not uploaded"})});
 
-        
-    }).on('error' ,() => {
-        console.log('error');
-        return res.status(500).json({
-            msg: "Internal server error"
-        });
-    }).run();
-//    if (outputBuffer == '')
-//         return res.status(500).json({"msg":"Internal server error"});
-//     parser.format(path.extname(req.file.originalname).toString(), outputBuffer);
-//         url = ''
-//         await uploader.upload(parser.content, { resource_type: "video" })
-//             .then((result) => {
-//                 console.log(result);
-//                 url = result.url;
-//             })
-//             .catch((err) => {
-//                 console.log(err)
-//                 return res.status(500).json({
-//                     msg: "Internal server error"
-//                 });
-//             });
-
-    
-   
 
 });
-router.post('/upload', userMiddleware, adminMiddleware, multerUploads, async (req, res) => {
+router.post('/upload', multerUploads, async (req, res) => {
     parser.format(path.extname(req.file.originalname).toString(), req.file.buffer);
     console.log(req.file);
     url = ''
@@ -228,7 +221,7 @@ router.post('/upload', userMiddleware, adminMiddleware, multerUploads, async (re
         const newvideo = await videos.create({
             title: req.file.originalname,
             url: url,
-            resolution: "144p"
+            resolution: req.body.resolution
 
         });
         return res.json({
