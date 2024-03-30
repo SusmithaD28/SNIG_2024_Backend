@@ -339,7 +339,33 @@ router.delete('/users/delete/:userId', userMiddleware, adminMiddleware, async (r
         msg: "user deleted successfully"
     })
 });
+//update a movie
+router.put('/movies/:movieId', userMiddleware, adminMiddleware, async (req, res) => {
+    const movieId = req.params.movieId;
+    const { title, plot, genres, runtime } = req.body;
 
+    try {
+        // Check if the movie exists
+        const existingMovie = await Movies.findById(movieId);
+        if (!existingMovie) {
+            return res.status(404).json({ message: 'Movie not found' });
+        }
+
+        // Update the movie fields
+        existingMovie.title = title;
+        existingMovie.plot = plot;
+        existingMovie.genres = genres;
+        existingMovie.runtime = runtime;
+
+        // Save the updated movie
+        await existingMovie.save();
+
+        res.json({ message: 'Movie updated successfully', movieId: existingMovie._id });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+});
 router.get('/video', userMiddleware,  async (req, res) => {
     const subscription = req.subscription;
     if (subscription == null) {
