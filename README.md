@@ -1,4 +1,4 @@
-# Backend of the Banking System
+# Backend of the Movie Database Website
 
 The backend API is built using Node.js, Express.js and Mongoose. It handles requests from the frontend UI and interacts with the database to retrieve or update data. The backend API provides a set of RESTful endpoints that define the functionality of the application.
 This project will hold the server application. First run npm install from the root. After this you will run npm run-script install-all from the root. From now on run this command anytime you want to install all modules again. This is a script we have defined in package.json .
